@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33213.308
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kbvm.TriMetTransitInfo.Functions", "Kbvm.TriMetTransitInfo.Functions\Kbvm.TriMetTransitInfo.Functions.csproj", "{41D8326B-A568-4339-8579-58B0A7D27CA0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{41D8326B-A568-4339-8579-58B0A7D27CA0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{41D8326B-A568-4339-8579-58B0A7D27CA0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{41D8326B-A568-4339-8579-58B0A7D27CA0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{41D8326B-A568-4339-8579-58B0A7D27CA0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8FB3C8F8-DD8A-4412-B67F-E406DA016F69}
+	EndGlobalSection
+EndGlobal
