@@ -9,29 +9,31 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using System.Net.Http;
+using System.Text;
 using Kbvm.TriMetTransitInfo.Functions.Interfaces;
+using System.Linq;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace Kbvm.TriMetTransitInfo.Functions.Endpoints
 {
     public class GetTriMetArrivalData
     {
-        private readonly IGetLatLong _geocoder;
 
-		public GetTriMetArrivalData(IGetLatLong geocoder)
-		{
-			_geocoder = geocoder ?? throw new ArgumentNullException(nameof(geocoder));
-		}
+        private IArrivalHandler _handler;
 
-		[FunctionName("GetTriMetArrivalData")]
+        public GetTriMetArrivalData(IArrivalHandler handler)
+        {
+            _handler = handler ?? throw new ArgumentNullException(nameof(handler));
+        }
+
+        [FunctionName("GetTriMetArrivalData")]
         public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req, ILogger log)
         {
             string address = req.Query["address"];
+			Arrivals arrivals = await _handler.GetArrivalsAsync(address);
 
-            var coords = await _geocoder.GetCoordinatesFromAddressAsync(address);
-
-            string responseMessage = $"Coords: {coords?.Latitude ?? -42M}, {coords?.Longitude ?? -42M}";
-
-            return new OkObjectResult(responseMessage);
+            return new OkObjectResult(arrivals);
         }
     }
 }

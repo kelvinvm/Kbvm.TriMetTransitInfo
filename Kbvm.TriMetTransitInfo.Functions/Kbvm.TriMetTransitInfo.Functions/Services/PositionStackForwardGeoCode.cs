@@ -25,13 +25,13 @@ namespace Kbvm.TriMetTransitInfo.Functions.Services
 		public async Task<GeoPoint> GetCoordinatesFromAddressAsync(string address)
 		{
 			var queryString = $"forward?access_key={_config.AccessKey}&query={HttpUtility.UrlEncode(address)}";
-			
+
 			var response = await _httpClient.GetAsync(queryString);
 			var json = await response.Content.ReadAsStringAsync();
 
-			var geocodeResults = JsonSerializer.Deserialize<ForwardGeocodeResult>(json, new JsonSerializerOptions() {  PropertyNameCaseInsensitive = true });
+			var geocodeResults = json.Deserialize<ForwardGeocodeResult>();
 			if (geocodeResults.Data == null || !geocodeResults.Data.Any())
-				throw new GeocodeErrorException(address, json, "Unserializable result from HTTP result");
+				throw new GeocodeErrorException(address, json, "Unserializable result from HTTP response");
 
 			var geocodeResult = geocodeResults.Data.First();
 			if (geocodeResult.Confidence < 0.80M)

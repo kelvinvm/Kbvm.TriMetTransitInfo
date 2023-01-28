@@ -7,6 +7,7 @@ using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Net.Http;
 
 [assembly: FunctionsStartup(typeof(Startup))]
 
@@ -16,15 +17,14 @@ namespace Kbvm.TriMetTransitInfo.Functions
     {
         public override void Configure(IFunctionsHostBuilder builder)
         {
-            builder.Services.AddHttpClient<IGetLatLong, PositionStackForwardGeoCode>((svcs, cfg) =>
-            {
-                IConfiguration confg = svcs.GetRequiredService<IConfiguration>();
-                cfg.BaseAddress = new Uri(confg["PositionStackUrl"]);
-            });
+            builder.Services.AddHttpClient<IGetLatLong, PositionStackForwardGeoCode>((svcs, cfg) => RegisterUrl(svcs, cfg, "PositionStackUrl"));
+            builder.Services.AddHttpClient<IGetStopInfo, TriMetStopInfo>((svcs, cfg) => RegisterUrl(svcs, cfg, "TriMetUrl"));
+            builder.Services.AddHttpClient<IGetArrivalInfo, TriMetArrivalInfo>((svcs, cfg) => RegisterUrl(svcs, cfg, "TriMetUrl"));
+
             builder.UseAutofacServiceProviderFactory(ConfigureContainer);
         }
 
-        public override void ConfigureAppConfiguration(IFunctionsConfigurationBuilder builder)
+		public override void ConfigureAppConfiguration(IFunctionsConfigurationBuilder builder)
         {
             builder.UseAppSettings();
         }
@@ -38,13 +38,34 @@ namespace Kbvm.TriMetTransitInfo.Functions
                 .AsSelf()
                 .InstancePerTriggerRequest();
 
+            // Configuration
             builder.Register(cfg => new PositionStackConfig(cfg.Resolve<IConfiguration>()["PositionStackApiKey"]))
                 .AsSelf()
                 .SingleInstance();
 
+            builder.Register(cfg =>
+            {
+                var config = cfg.Resolve<IConfiguration>();
+                return new TriMetConfig(
+                    config["TriMetApiId"],
+                    int.Parse(config["TriMetDistanceToSearch"]),
+                    int.Parse(config["TriMetArrivalWindowMinutes"]));
+            })
+                .AsSelf()
+                .SingleInstance();
+
+            builder.RegisterType<ArrivalHandler>().As<IArrivalHandler>().InstancePerTriggerRequest();
+
             return builder.Build();
         }
-    }
+
+		private static void RegisterUrl(IServiceProvider svcs, HttpClient cfg, string configKey)
+		{
+			IConfiguration config = svcs.GetRequiredService<IConfiguration>();
+			cfg.BaseAddress = new Uri(config[configKey]);
+		}
+	}
 
     public record PositionStackConfig (string AccessKey);
+    public record TriMetConfig(string ApplicationId, int DistanceToSearch, int ArrivalWindowInMinutes);
 }
