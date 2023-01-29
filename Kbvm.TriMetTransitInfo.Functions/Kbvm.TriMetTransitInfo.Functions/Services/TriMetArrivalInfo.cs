@@ -1,4 +1,8 @@
-﻿using Kbvm.TriMetTransitInfo.Functions.Interfaces;
+﻿using Kbvm.TriMetTransitInfo.Cache;
+using Kbvm.TriMetTransitInfo.Dto.Records;
+using Kbvm.TriMetTransitInfo.Functions.Classes;
+using Kbvm.TriMetTransitInfo.Functions.Exceptions;
+using Kbvm.TriMetTransitInfo.Functions.Interfaces;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -9,14 +13,12 @@ using System.Threading.Tasks;
 
 namespace Kbvm.TriMetTransitInfo.Functions.Services
 {
-	internal class TriMetArrivalInfo : IGetArrivalInfo
+    internal class TriMetArrivalInfo : HttpQueryBaseClass<Arrivals>, IGetArrivalInfo
 	{
-		private readonly HttpClient _httpClient;
 		private readonly TriMetConfig _config;
 
-		public TriMetArrivalInfo(HttpClient httpClient, TriMetConfig config)
+		public TriMetArrivalInfo(ICache<Arrivals> cache, HttpClient httpClient, TriMetConfig config) : base(cache, httpClient)
 		{
-			_httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
 			_config = config ?? throw new ArgumentNullException(nameof(config));
 		}
 
@@ -28,22 +30,19 @@ namespace Kbvm.TriMetTransitInfo.Functions.Services
 				$"&json=true" +
 				$"&showPosition=true" +
 				$"&minutes={_config.ArrivalWindowInMinutes}";
-			string json = string.Empty;
 
 			try
 			{
-				var response = await _httpClient.GetAsync(queryString);
-				json = await response.Content.ReadAsStringAsync();
+				Arrivals arrivals = await RunQueryAsync(queryString, locId.ToString());
 
-				var arrivals = json.Deserialize<Arrivals>();
 				if (arrivals.ResultSet == null || arrivals.ResultSet.Arrival == null || !arrivals.ResultSet.Arrival.Any())
-					throw new TriMetArrivalsErrorException(locId, json);
+					throw new TriMetArrivalsErrorException(locId, string.Empty, "Unexpected JSON result");
 
 				return arrivals;
 			}
-			catch (JsonException ex)
+			catch (HttpQueryBaseException ex)
 			{
-				throw new TriMetArrivalsErrorException(locId, json, "Error while deserializing response JSON from TriMet", ex);
+				throw new TriMetArrivalsErrorException(locId, ex.JsonString, ex.Message, ex);
 			}
 		}
 	}

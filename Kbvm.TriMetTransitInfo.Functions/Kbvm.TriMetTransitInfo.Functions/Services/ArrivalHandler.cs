@@ -1,3 +1,4 @@
+using Kbvm.TriMetTransitInfo.Dto.Records;
 using Kbvm.TriMetTransitInfo.Functions.Interfaces;
 using System;
 using System.Collections.Generic;

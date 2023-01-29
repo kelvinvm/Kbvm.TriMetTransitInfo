@@ -1,46 +1,47 @@
-﻿using Kbvm.TriMetTransitInfo.Functions.Interfaces;
-using Microsoft.AspNetCore.Http;
+﻿using Kbvm.TriMetTransitInfo.Cache;
+using Kbvm.TriMetTransitInfo.Dto.Records;
+using Kbvm.TriMetTransitInfo.Functions.Classes;
+using Kbvm.TriMetTransitInfo.Functions.Exceptions;
+using Kbvm.TriMetTransitInfo.Functions.Interfaces;
 using System;
-using System.Collections.Generic;
+using System.Data;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
-using System.Runtime.CompilerServices;
-using System.Runtime.Serialization;
-using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Kbvm.TriMetTransitInfo.Functions.Services
 {
-	internal class TriMetStopInfo : IGetStopInfo
+    internal class TriMetStopInfo : HttpQueryBaseClass<Stops>, IGetStopInfo
 	{
-		private readonly HttpClient _httpClient;
 		private readonly TriMetConfig _config;
 
-		public TriMetStopInfo(HttpClient httpClient, TriMetConfig config)
+		public TriMetStopInfo(ICache<Stops> cache, HttpClient httpClient, TriMetConfig config) : base(cache, httpClient)
 		{
-			_httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
 			_config = config ?? throw new ArgumentNullException(nameof(config));
 		}
 
 		public async Task<Stops> GetStopsNearLatLongAsync(GeoPoint point)
 		{
-			var queryString = $"V1/stops" +
-				$"?appID={_config.ApplicationId}" +
-				$"&ll={point.Latitude},{point.Longitude}" +
-				$"&meters={_config.DistanceToSearch}" +
-				$"&showRouteDirs=true" +
-				$"&json=true";
+			try
+			{
+				var queryString = $"V1/stops" +
+					$"?appID={_config.ApplicationId}" +
+					$"&ll={point.Latitude},{point.Longitude}" +
+					$"&meters={_config.DistanceToSearch}" +
+					$"&showRouteDirs=true" +
+					$"&json=true";
 
-			var response = await _httpClient.GetAsync(queryString);
-			var json = await response.Content.ReadAsStringAsync();
+				var triMetStops = await RunQueryAsync(queryString, point.ToString());
+				if (triMetStops.ResultSet == null || triMetStops.ResultSet.Location == null || !triMetStops.ResultSet.Location.Any())
+					throw new TriMetStopsErrorException(point, string.Empty, "Unexpected JSON result.");
 
-			var triMetStops = json.Deserialize<Stops>();
-			if (triMetStops.ResultSet == null || triMetStops.ResultSet.Location == null || !triMetStops.ResultSet.Location.Any())
-				throw new TriMetStopsErrorException(point, json);
-
-			return triMetStops;
+				return triMetStops;
+			}
+			catch (HttpQueryBaseException ex)
+			{
+				throw new TriMetStopsErrorException(point, ex.JsonString, ex.Message, ex);
+			}
 		}
 	}
 }
